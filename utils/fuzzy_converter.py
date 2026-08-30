@@ -1,5 +1,3 @@
-# utils/fuzzy_converter.py
-
 TFN_SCALE = {
     1: (1, 1, 1),
     2: (1, 2, 3),
@@ -15,15 +13,52 @@ TFN_SCALE = {
 
 def get_tfn(value):
     """
-    Mengubah nilai AHP menjadi Triangular Fuzzy Number (TFN).
+    Mengubah nilai perbandingan AHP menjadi
+    Triangular Fuzzy Number (TFN).
+
+    Nilai hasil Auto Consistency dapat berupa
+    rasio kontinu, sehingga nilai tersebut
+    dipetakan ke skala AHP terdekat 1-9.
     """
 
+    # Pastikan nilai positif
+    if value <= 0:
+        raise ValueError(
+            "Nilai perbandingan AHP harus lebih besar dari 0."
+        )
+
+    # ==========================================================
+    # Nilai >= 1
+    # ==========================================================
+
     if value >= 1:
-        return TFN_SCALE[int(value)]
 
-    reciprocal = int(round(1 / value))
+        # Membatasi nilai ke rentang skala Saaty 1-9
+        scale_value = min(
+            9,
+            max(
+                1,
+                int(round(value))
+            )
+        )
 
-    l, m, u = TFN_SCALE[reciprocal]
+        return TFN_SCALE[scale_value]
+
+    # ==========================================================
+    # Nilai reciprocal (< 1)
+    # ==========================================================
+
+    reciprocal = 1 / value
+
+    scale_value = min(
+        9,
+        max(
+            1,
+            int(round(reciprocal))
+        )
+    )
+
+    l, m, u = TFN_SCALE[scale_value]
 
     return (
         round(1 / u, 4),
