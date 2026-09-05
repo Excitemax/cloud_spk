@@ -12,10 +12,6 @@ def show_consistency(
     criteria
 ):
 
-    consistency_result = consistency_test(
-        matrix_user
-    )
-
     with st.expander(
         "📌 Tahap 2 - Uji Konsistensi",
         expanded=False
@@ -25,6 +21,23 @@ def show_consistency(
             "Tahap ini bertujuan untuk memastikan bahwa "
             "penilaian pengguna bersifat logis dan konsisten."
         )
+
+        # ------------------------------------------------------
+        # Seluruh perhitungan dibungkus try/except agar apabila
+        # terjadi kesalahan input atau numerik yang tidak
+        # terduga, pengguna melihat pesan yang jelas alih-alih
+        # aplikasi berhenti tiba-tiba (crash).
+        # ------------------------------------------------------
+
+        try:
+            consistency_result = consistency_test(
+                matrix_user
+            )
+        except ValueError as e:
+            st.error(
+                f"Matriks perbandingan tidak dapat diproses: {e}"
+            )
+            st.stop()
 
         col1, col2, col3 = st.columns(3)
 
@@ -65,18 +78,16 @@ def show_consistency(
         )
 
         active_matrix = matrix_user
-        active_weights = None
 
         # ----------------------------------------------------------
         # Pemeriksaan Konsistensi
         #
         # Jika CR >= 0.10, sistem TIDAK menyarankan nilai
         # pengganti untuk penilaian pengguna/ahli. Sistem hanya
-        # menampilkan:
+        # menampilkan dua hal yang bersifat informatif:
         #
         # 1. Ranking pasangan kriteria yang paling berkontribusi
-        #    terhadap ketidakkonsistenan (deskriptif, bukan
-        #    instruksi mengganti nilai).
+        #    terhadap ketidakkonsistenan.
         # 2. Ranking prioritas kriteria versi konsisten, sebagai
         #    hasil sampingan dari proses perbaikan otomatis.
         #
@@ -105,50 +116,70 @@ def show_consistency(
             # 1. Ranking kontribusi ketidakkonsistenan
             # ------------------------------------------------------
 
-            issues = find_inconsistent_pairs(
-                matrix_user,
-                criteria
-            )
+            try:
+                issues = find_inconsistent_pairs(
+                    matrix_user,
+                    criteria
+                )
+            except Exception as e:
+                issues = []
+                st.error(
+                    f"Analisis kontribusi ketidakkonsistenan "
+                    f"gagal dijalankan: {e}"
+                )
 
-            st.subheader(
-                "Pasangan Perbandingan Paling Berkontribusi "
-                "Terhadap Ketidakkonsistenan"
-            )
+            if issues:
 
-            st.caption(
+                st.subheader(
+                    "Pasangan Perbandingan Paling Berkontribusi "
+                    "Terhadap Ketidakkonsistenan"
+                )
+
+                st.caption(
+                    """
+                Daftar berikut diurutkan dari kontribusi terbesar
+                ke terkecil terhadap nilai Consistency Ratio (CR).
+                Daftar ini bersifat informatif untuk membantu
+                memahami sumber ketidakkonsistenan, dan bukan
+                merupakan instruksi untuk mengubah nilai slider
+                tertentu.
                 """
-            Daftar berikut diurutkan dari kontribusi terbesar
-            ke terkecil terhadap nilai Consistency Ratio (CR).
-            Daftar ini bersifat informatif untuk membantu
-            memahami sumber ketidakkonsistenan, dan bukan
-            merupakan instruksi untuk mengubah nilai slider
-            tertentu.
-            """
-            )
+                )
 
-            issues_df = pd.DataFrame(issues)
-            issues_df.index = issues_df.index + 1
-            issues_df.index.name = "Peringkat"
+                issues_df = pd.DataFrame(issues).rename(columns={
+                    "pair": "Pasangan Kriteria",
+                    "actual": "Nilai Slider Pengguna",
+                    "expected": "Nilai Ideal (Analitis)",
+                    "error": "Kontribusi Terhadap Inkonsistensi",
+                })
+                issues_df.index = issues_df.index + 1
+                issues_df.index.name = "Peringkat"
 
-            st.dataframe(
-                issues_df.round(4),
-                use_container_width=True
-            )
+                st.dataframe(
+                    issues_df.round(4),
+                    use_container_width=True
+                )
 
             # ------------------------------------------------------
             # Perbaikan otomatis (selalu dijalankan)
             # ------------------------------------------------------
 
-            fixed_matrix, weights = auto_fix_matrix(
-                matrix_user
-            )
+            try:
+                fixed_matrix, weights = auto_fix_matrix(
+                    matrix_user
+                )
+
+                fixed_consistency = consistency_test(
+                    fixed_matrix
+                )
+
+            except ValueError as e:
+                st.error(
+                    f"Perbaikan matriks otomatis gagal dilakukan: {e}"
+                )
+                st.stop()
 
             active_matrix = fixed_matrix
-            active_weights = weights
-
-            fixed_consistency = consistency_test(
-                fixed_matrix
-            )
 
             cr_baru = max(
                 fixed_consistency["cr"],
