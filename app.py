@@ -3,7 +3,7 @@
 # Hybrid Fuzzy AHP - TOPSIS
 # ==========================================================
 #app.py
-# Import Library
+
 import streamlit as st
 
 # Import Halaman Aplikasi
@@ -29,7 +29,6 @@ st.set_page_config(
 # Header Aplikasi
 
 st.title("☁️ Cloud Service Recommendation System")
-
 st.subheader("Hybrid Fuzzy AHP - TOPSIS")
 
 st.markdown("""
@@ -71,114 +70,128 @@ matrix_user, criteria = show_input()
 #
 # Seluruh proses hanya dijalankan ketika pengguna
 # menekan tombol "Hitung Rekomendasi".
+#
+# CATATAN PERBAIKAN:
+# pada versi ini, seluruh tahap perhitungan telah disejajarkan
+# agar berada di dalam satu blok spinner yang sama.
 # ==========================================================
 
 if st.button(
     "🚀 Hitung Rekomendasi",
     use_container_width=True
 ):
-    with st.spinner(
-        "Sedang menghitung rekomendasi..."
-    ):
+    try:
+        with st.spinner(
+            "Sedang menghitung rekomendasi..."
+        ):
 
-    # ======================================================
-    # Tahap 1
-    # Menampilkan matriks perbandingan berpasangan (Pairwise)
-    # yang dibentuk dari input pengguna.
-    # ======================================================
+            # ==================================================
+            # Tahap 1
+            # Menampilkan matriks perbandingan berpasangan
+            # (Pairwise) yang dibentuk dari input pengguna.
+            # ==================================================
 
-        show_pairwise(
-            matrix_user,
-            criteria
+            show_pairwise(
+                matrix_user,
+                criteria
+            )
+
+            # ==================================================
+            # Tahap 2
+            #
+            # Menguji konsistensi matriks menggunakan metode AHP.
+            #
+            # Output:
+            # active_matrix      -> matriks yang akan digunakan
+            # consistency_result -> hasil pengujian konsistensi
+            #
+            # Jika matriks tidak konsisten maka sistem akan
+            # memperbaiki matriks secara otomatis.
+            # ==================================================
+
+            active_matrix, consistency_result = show_consistency(
+                matrix_user,
+                criteria
+            )
+
+            # ==================================================
+            # Tahap 3
+            #
+            # Menampilkan matriks akhir yang digunakan pada
+            # proses Fuzzy AHP serta menghitung bobot setiap
+            # kriteria.
+            #
+            # Output:
+            # fuzzy_result -> seluruh hasil perhitungan Fuzzy AHP
+            # weights      -> bobot akhir setiap kriteria
+            # ==================================================
+
+            fuzzy_result, weights = show_final_matrix(
+                active_matrix,
+                criteria,
+                consistency_result
+            )
+
+            # ==================================================
+            # Tahap 4
+            #
+            # Menampilkan seluruh proses perhitungan Fuzzy AHP,
+            # meliputi:
+            # - Synthetic Extent
+            # - Defuzzification
+            # - Bobot akhir kriteria
+            # ==================================================
+
+            show_fuzzy_ahp(
+                fuzzy_result,
+                weights,
+                criteria
+            )
+
+            # ==================================================
+            # Tahap 5
+            # Mengambil matriks keputusan hasil penilaian ahli.
+            # ==================================================
+
+            cloud_df, decision_matrix, alternatives = show_cloud_data()
+
+            # ==================================================
+            # Tahap 6
+            #
+            # Menghitung perangkingan alternatif menggunakan
+            # metode TOPSIS berdasarkan:
+            #
+            # - bobot hasil Fuzzy AHP
+            # - data penilaian para ahli
+            #
+            # Output:
+            # topsis_result -> seluruh hasil perhitungan TOPSIS
+            # ==================================================
+
+            topsis_result = show_topsis(
+                decision_matrix,
+                weights,
+                alternatives,
+                criteria
+            )
+
+            # ==================================================
+            # Tahap 7
+            #
+            # Menampilkan hasil akhir berupa:
+            # - ranking seluruh alternatif
+            # - nilai preferensi
+            # - rekomendasi platform cloud terbaik
+            # ==================================================
+
+            show_ranking(
+                topsis_result
+            )
+
+    except Exception as e:
+        st.error(
+            "Terjadi kendala saat memproses perhitungan. "
+            "Silakan periksa kembali preferensi yang dimasukkan "
+            "lalu coba tekan tombol Hitung Rekomendasi kembali.\n\n"
+            f"Detail teknis: {e}"
         )
-
-    # ======================================================
-    # Tahap 2
-    #
-    # Menguji konsistensi matriks menggunakan metode AHP.
-    #
-    # Output:
-    # active_matrix      -> matriks yang akan digunakan
-    # consistency_result -> hasil pengujian konsistensi
-    #
-    # Jika matriks tidak konsisten maka sistem akan
-    # memperbaiki matriks secara otomatis.
-    # ======================================================
-
-    active_matrix, consistency_result = show_consistency(
-        matrix_user,
-        criteria
-    )
-
-    # ======================================================
-    # Tahap 3
-    #
-    # Menampilkan matriks akhir yang digunakan pada proses
-    # Fuzzy AHP serta menghitung bobot setiap kriteria.
-    #
-    # Output:
-    # fuzzy_result -> seluruh hasil perhitungan Fuzzy AHP
-    # weights      -> bobot akhir setiap kriteria
-    # ======================================================
-
-    fuzzy_result, weights = show_final_matrix(
-        active_matrix,
-        criteria,
-        consistency_result
-    )
-
-    # ======================================================
-    # Tahap 4
-    #
-    # Menampilkan seluruh proses perhitungan Fuzzy AHP,
-    # meliputi:
-    # - Synthetic Extent
-    # - Defuzzification
-    # - Bobot akhir kriteria
-    # ======================================================
-
-    show_fuzzy_ahp(
-        fuzzy_result,
-        weights,
-        criteria
-    )
-
-# ======================================================
-# Tahap 5
-# Mengambil matriks keputusan hasil penilaian ahli.
-# ======================================================
-
-    cloud_df, decision_matrix, alternatives = show_cloud_data()
-
-    # ======================================================
-    # Tahap 6
-    #
-    # Menghitung perangkingan alternatif menggunakan
-    # metode TOPSIS berdasarkan:
-    #
-    # - bobot hasil Fuzzy AHP
-    # - data penilaian para ahli
-    #
-    # Output:
-    # topsis_result -> seluruh hasil perhitungan TOPSIS
-    # ======================================================
-
-    topsis_result = show_topsis(
-        decision_matrix,
-        weights,
-        alternatives,
-        criteria
-    )
-
-    # ======================================================
-    # Tahap 7
-    #
-    # Menampilkan hasil akhir berupa:
-    # - ranking seluruh alternatif
-    # - nilai preferensi
-    # - rekomendasi platform cloud terbaik
-    # ======================================================
-
-    show_ranking(
-        topsis_result
-    )
