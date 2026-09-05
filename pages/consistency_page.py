@@ -13,243 +13,246 @@ def show_consistency(
 ):
 
     consistency_result = consistency_test(
-            matrix_user
-        )
+        matrix_user
+    )
 
     with st.expander(
-            "📌 Tahap 2 - Uji Konsistensi",
-            expanded=False
-        ):
-            st.header("2. Uji Konsistensi")
-            st.caption(
-                "Tahap ini bertujuan untuk memastikan bahwa "
-                "penilaian pengguna bersifat logis dan konsisten."
+        "📌 Tahap 2 - Uji Konsistensi",
+        expanded=False
+    ):
+        st.header("2. Uji Konsistensi")
+        st.caption(
+            "Tahap ini bertujuan untuk memastikan bahwa "
+            "penilaian pengguna bersifat logis dan konsisten."
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "Lambda Max",
+            round(
+                consistency_result["lambda_max"],
+                4
             )
-            
-            col1, col2, col3 = st.columns(3)
+        )
 
-            col1.metric(
-                "Lambda Max",
-                round(
-                    consistency_result["lambda_max"],
-                    4
-                )
+        col2.metric(
+            "CI",
+            round(
+                consistency_result["ci"],
+                4
             )
+        )
 
-            col2.metric(
-                "CI",
-                round(
-                    consistency_result["ci"],
-                    4
-                )
+        col3.metric(
+            "CR",
+            round(
+                consistency_result["cr"],
+                4
             )
+        )
 
-            col3.metric(
-                "CR",
-                round(
-                    consistency_result["cr"],
-                    4
-                )
-            )
-
-            st.info(
-                """
-            Interpretasi Consistency Ratio (CR)
-
-            ✓ CR < 0.10
-            Matriks dinyatakan konsisten.
-
-            ✗ CR ≥ 0.10
-            Matriks perlu diperbaiki.
+        st.info(
             """
-            )
-            
-            active_matrix = matrix_user
-            
+        Interpretasi Consistency Ratio (CR)
+
+        ✓ CR < 0.10
+        Matriks dinyatakan konsisten.
+
+        ✗ CR ≥ 0.10
+        Matriks perlu diperbaiki.
+        """
+        )
+
+        active_matrix = matrix_user
+        active_weights = None
+
         # ----------------------------------------------------------
         # Pemeriksaan Konsistensi
         #
-        # Jika CR lebih dari 0.10 maka sistem akan
-        # melakukan perbaikan otomatis menggunakan
-        # metode eigenvector.
+        # Jika CR >= 0.10, sistem TIDAK menyarankan nilai
+        # pengganti untuk penilaian pengguna/ahli. Sistem hanya
+        # menampilkan:
+        #
+        # 1. Ranking pasangan kriteria yang paling berkontribusi
+        #    terhadap ketidakkonsistenan (deskriptif, bukan
+        #    instruksi mengganti nilai).
+        # 2. Ranking prioritas kriteria versi konsisten, sebagai
+        #    hasil sampingan dari proses perbaikan otomatis.
+        #
+        # Perbaikan matriks selalu dilakukan secara otomatis
+        # menggunakan metode eigenvector (auto_fix_matrix), yang
+        # menjamin CR hasil perbaikan = 0 (transitif sempurna),
+        # tanpa memerlukan input tambahan dari pengguna/ahli.
         # ----------------------------------------------------------
 
-            if not consistency_result["is_consistent"]:
+        if not consistency_result["is_consistent"]:
 
-                st.warning(
-                    f"""
-                Matriks tidak memenuhi syarat konsistensi.
+            st.warning(
+                f"""
+            Matriks tidak memenuhi syarat konsistensi.
 
-                Consistency Ratio (CR) = {consistency_result['cr']:.4f}
+            Consistency Ratio (CR) = {consistency_result['cr']:.4f}
 
-                Sistem akan melakukan proses perbaikan otomatis
-                agar bobot yang dihasilkan lebih valid.
+            Sistem akan melakukan perbaikan otomatis terhadap
+            matriks menggunakan metode eigenvector, sehingga
+            proses Fuzzy AHP tetap dapat dilanjutkan dengan
+            matriks yang konsisten.
+            """
+            )
+
+            # ------------------------------------------------------
+            # 1. Ranking kontribusi ketidakkonsistenan
+            # ------------------------------------------------------
+
+            issues = find_inconsistent_pairs(
+                matrix_user,
+                criteria
+            )
+
+            st.subheader(
+                "Pasangan Perbandingan Paling Berkontribusi "
+                "Terhadap Ketidakkonsistenan"
+            )
+
+            st.caption(
                 """
-                )
+            Daftar berikut diurutkan dari kontribusi terbesar
+            ke terkecil terhadap nilai Consistency Ratio (CR).
+            Daftar ini bersifat informatif untuk membantu
+            memahami sumber ketidakkonsistenan, dan bukan
+            merupakan instruksi untuk mengubah nilai slider
+            tertentu.
+            """
+            )
 
-                issues = find_inconsistent_pairs(
-                    matrix_user,
-                    criteria
-                )
+            issues_df = pd.DataFrame(issues)
+            issues_df.index = issues_df.index + 1
+            issues_df.index.name = "Peringkat"
 
-                st.subheader(
-                    "Pasangan Perbandingan Dengan Error Terbesar"
-                )
+            st.dataframe(
+                issues_df.round(4),
+                use_container_width=True
+            )
 
-                st.caption(
-                    """
-                Semakin besar nilai error, semakin besar kontribusi
-                pasangan tersebut terhadap ketidakkonsistenan matriks.
-                """
-                )
+            # ------------------------------------------------------
+            # Perbaikan otomatis (selalu dijalankan)
+            # ------------------------------------------------------
 
-                st.dataframe(
-                    pd.DataFrame(issues[:5])
-                )
-                
-                st.subheader(
-                    "Saran Perbaikan Penilaian"
-                )
+            fixed_matrix, weights = auto_fix_matrix(
+                matrix_user
+            )
 
-                st.write(
-                    """
-                Berikut adalah pasangan kriteria yang paling
-                berkontribusi terhadap ketidakkonsistenan.
+            active_matrix = fixed_matrix
+            active_weights = weights
 
-                Sistem menyarankan agar pengguna meninjau
-                kembali penilaian berikut.
-                """
-                )
-                
-                skala_saaty = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+            fixed_consistency = consistency_test(
+                fixed_matrix
+            )
 
-                for item in issues[:5]:
-
-                    pair = item["pair"]
-                    actual = item["actual"]
-                    expected = item["expected"]
-                    error = item["error"]
-
-                    kiri, kanan = pair.split(" vs ")
-
-                    # Bulatkan nilai rekomendasi ke skala Saaty terdekat
-
-                    rekomendasi = min(
-                        skala_saaty,
-                        key=lambda x: abs(x - expected)
-                    )
-
-                    if actual > rekomendasi:
-
-                        saran = (
-                            f"Kurangi tingkat kepentingan **{kiri}** terhadap **{kanan}**."
-                        )
-
-                    elif actual < rekomendasi:
-
-                        saran = (
-                            f"Tingkatkan tingkat kepentingan **{kiri}** terhadap **{kanan}**."
-                        )
-
-                    else:
-
-                        saran = (
-                            "Nilai sudah mendekati nilai ideal."
-                        )
-
-                    st.warning(
-                        f"""
-                ### ⚠️ Perbandingan yang Perlu Ditinjau
-
-                **{pair}**
-
-                **Nilai saat ini :** {actual}
-
-                **Nilai ideal hasil analisis :** {expected:.2f}
-
-                **Nilai yang disarankan (Skala Saaty) :** {rekomendasi}
-
-                **Kontribusi terhadap inkonsistensi :** {error:.4f}
-
-                **Saran Sistem :**
-
-                {saran}
-                """
-                    )
-                
-                fixed_matrix, _ = (
-                        auto_fix_matrix(matrix_user)
-                    )
-                
-                active_matrix = fixed_matrix
-                
-                fixed_consistency = consistency_test(
-                    fixed_matrix
-                )
-                
-                cr_baru = max(
+            cr_baru = max(
                 fixed_consistency["cr"],
-                    0
-                )
-                
-                st.success(
-                    f"""
-                Perbaikan matriks berhasil dilakukan.
+                0
+            )
 
-                Consistency Ratio setelah perbaikan
-                = {cr_baru:.4f}
-                """
-                )
-                
-                col1, col2 = st.columns(2)
+            st.success(
+                f"""
+            Perbaikan matriks berhasil dilakukan.
 
-                with col1:
-                    st.metric(
-                        "CR Sebelum",
-                        round(
-                            consistency_result["cr"],
-                            4
-                        )
+            Consistency Ratio setelah perbaikan
+            = {cr_baru:.4f}
+            """
+            )
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.metric(
+                    "CR Sebelum",
+                    round(
+                        consistency_result["cr"],
+                        4
                     )
+                )
 
-                with col2:
-                    st.metric(
-                        "CR Sesudah",
-                        round(
-                            cr_baru,
-                            4
-                        )
+            with col2:
+                st.metric(
+                    "CR Sesudah",
+                    round(
+                        cr_baru,
+                        4
                     )
-                
-                st.info(
-                    "Perbaikan dilakukan menggunakan "
-                    "metode eigenvector untuk menghasilkan "
-                    "matriks yang memenuhi syarat konsistensi "
-                    "(CR < 0.1)."
                 )
 
-                st.subheader(
-                    "Matriks Konsisten Hasil Perbaikan"
-                )
-                st.caption(
-                    "Matriks berikut digunakan pada proses "
-                    "perhitungan Fuzzy AHP."
-                )
+            st.info(
+                "Perbaikan dilakukan menggunakan metode "
+                "eigenvector, yaitu merekonstruksi matriks "
+                "perbandingan berpasangan dari satu vektor "
+                "bobot tunggal (aij = wi / wj). Matriks yang "
+                "dibentuk dengan cara ini bersifat transitif "
+                "sempurna, sehingga CR hasil perbaikan akan "
+                "selalu bernilai 0, berapa pun input awal yang "
+                "diberikan pengguna."
+            )
 
-                st.dataframe(
-                    pd.DataFrame(
-                        fixed_matrix,
-                        index=criteria,
-                        columns=criteria
-                    ).round(4)
-                )
-            else:
-                st.success(
-                    """
-                Matriks telah memenuhi syarat konsistensi.
+            st.subheader(
+                "Matriks Konsisten Hasil Perbaikan"
+            )
+            st.caption(
+                "Matriks berikut digunakan pada proses "
+                "perhitungan Fuzzy AHP."
+            )
 
-                Perhitungan Fuzzy AHP akan menggunakan
-                matriks asli dari pengguna.
+            st.dataframe(
+                pd.DataFrame(
+                    fixed_matrix,
+                    index=criteria,
+                    columns=criteria
+                ).round(4)
+            )
+
+            # ------------------------------------------------------
+            # 2. Ranking prioritas kriteria (versi konsisten)
+            # ------------------------------------------------------
+
+            st.subheader(
+                "Prioritas Kriteria Hasil Perbaikan"
+            )
+
+            st.caption(
                 """
-                )
-            return active_matrix, consistency_result
+            Bobot berikut diturunkan dari eigenvector yang
+            sama dengan yang digunakan untuk membentuk matriks
+            konsisten di atas, dan menggambarkan urutan
+            kepentingan kriteria dari yang paling penting
+            hingga yang paling tidak penting.
+            """
+            )
+
+            priority_df = pd.DataFrame({
+                "Kriteria": criteria,
+                "Bobot (Eigenvector)": weights
+            }).sort_values(
+                by="Bobot (Eigenvector)",
+                ascending=False
+            ).reset_index(drop=True)
+
+            priority_df.index = priority_df.index + 1
+            priority_df.index.name = "Peringkat"
+
+            st.dataframe(
+                priority_df.round(4),
+                use_container_width=True
+            )
+
+        else:
+            st.success(
+                """
+            Matriks telah memenuhi syarat konsistensi.
+
+            Perhitungan Fuzzy AHP akan menggunakan
+            matriks asli dari pengguna.
+            """
+            )
+
+        return active_matrix, consistency_result

@@ -1,4 +1,4 @@
-#input_vizualisation.py
+#utils/input_vizualisation.py
 import streamlit as st
 import pandas as pd
 

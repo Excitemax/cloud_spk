@@ -1,5 +1,4 @@
 # utils/matrix_helper.py
-
 import numpy as np
 
 def build_pairwise_matrix(comparisons):
