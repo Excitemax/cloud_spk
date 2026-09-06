@@ -1,64 +1,48 @@
-#utils/fuzzy_converter.py
-TFN_SCALE = {
-    1: (1, 1, 1),
-    2: (1, 2, 3),
-    3: (2, 3, 4),
-    4: (3, 4, 5),
-    5: (4, 5, 6),
-    6: (5, 6, 7),
-    7: (6, 7, 8),
-    8: (7, 8, 9),
-    9: (9, 9, 9),
-}
+# utils/fuzzy_converter.py
+"""
+Konversi nilai skala Saaty (1-9, atau reciprocal-nya) menjadi
+Triangular Fuzzy Number (TFN) berbentuk (l, m, u).
+
+Skala TFN_SCALE didefinisikan satu kali di config.py agar
+konsisten dengan bagian sistem lain yang mungkin perlu tahu
+skala yang sama di masa depan.
+"""
+
+from config import TFN_SCALE
 
 
 def get_tfn(value):
     """
-    Mengubah nilai perbandingan AHP menjadi
-    Triangular Fuzzy Number (TFN).
+    Mengubah nilai perbandingan AHP menjadi Triangular Fuzzy
+    Number (TFN).
 
-    Nilai hasil Auto Consistency dapat berupa
-    rasio kontinu, sehingga nilai tersebut
-    dipetakan ke skala AHP terdekat 1-9.
+    Nilai hasil Auto Consistency dapat berupa rasio kontinu
+    (bukan bilangan bulat 1-9), sehingga nilai tersebut
+    dipetakan ke skala Saaty terdekat sebelum dicari TFN-nya.
+
+    Args:
+        value : float, nilai perbandingan AHP (harus > 0).
+
+    Returns:
+        tuple (l, m, u) : Triangular Fuzzy Number.
+
+    Raises:
+        ValueError jika value <= 0.
     """
 
-    # Pastikan nilai positif
     if value <= 0:
         raise ValueError(
             "Nilai perbandingan AHP harus lebih besar dari 0."
         )
 
-    # ==========================================================
-    # Nilai >= 1
-    # ==========================================================
-
     if value >= 1:
-
-        # Membatasi nilai ke rentang skala Saaty 1-9
-        scale_value = min(
-            9,
-            max(
-                1,
-                int(round(value))
-            )
-        )
-
+        scale_value = min(9, max(1, int(round(value))))
         return TFN_SCALE[scale_value]
 
-    # ==========================================================
-    # Nilai reciprocal (< 1)
-    # ==========================================================
-
+    # Nilai reciprocal (< 1): cari skala Saaty terdekat dari
+    # kebalikannya, lalu balik lagi TFN-nya.
     reciprocal = 1 / value
-
-    scale_value = min(
-        9,
-        max(
-            1,
-            int(round(reciprocal))
-        )
-    )
-
+    scale_value = min(9, max(1, int(round(reciprocal))))
     l, m, u = TFN_SCALE[scale_value]
 
     return (

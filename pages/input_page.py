@@ -1,12 +1,68 @@
-#input_page.py
+#pages/input_page.py
+"""
+Halaman input preferensi pengguna (Tahap 1).
+
+seluruh pasangan dibuat otomatis dari config.CRITERIA
+lewat matrix_helper.get_pairwise_labels(), sehingga jumlah
+kriteria berapa pun akan otomatis menghasilkan slider yang
+sesuai, tanpa mengubah kode di file ini.
+"""
+
 import streamlit as st
 import numpy as np
 
+from config import CRITERIA
+from utils.matrix_helper import get_pairwise_labels, build_pairwise_matrix
+
+
 # ==========================================================
-# Fungsi untuk membuat pilihan pairwise
+# Pemetaan posisi slider (-8 s.d. 8) ke nilai skala Saaty.
+# Didefinisikan sekali di sini karena dipakai berkali-kali
+# oleh pairwise_slider().
 # ==========================================================
 
+_POSITION_TO_SAATY = {
+    -8: 9, -7: 8, -6: 7, -5: 6, -4: 5, -3: 4, -2: 3, -1: 2,
+     0: 1,
+     1: 1/2, 2: 1/3, 3: 1/4, 4: 1/5, 5: 1/6, 6: 1/7, 7: 1/8, 8: 1/9,
+}
+
+_POSITION_TO_LABEL = {
+    -8: "mutlak lebih penting",
+    -7: "berada di antara sangat dan mutlak lebih penting",
+    -6: "sangat lebih penting",
+    -5: "berada di antara lebih penting dan sangat lebih penting",
+    -4: "lebih penting",
+    -3: "berada di antara sedikit dan lebih penting",
+    -2: "sedikit lebih penting",
+    -1: "berada di antara sama dan sedikit lebih penting",
+     0: "__SAMA__",
+     1: "berada di antara sama dan sedikit lebih penting",
+     2: "sedikit lebih penting",
+     3: "berada di antara sedikit dan lebih penting",
+     4: "lebih penting",
+     5: "berada di antara lebih penting dan sangat lebih penting",
+     6: "sangat lebih penting",
+     7: "berada di antara sangat dan mutlak lebih penting",
+     8: "mutlak lebih penting",
+}
+
+
 def pairwise_slider(label, first, second):
+    """
+    Menampilkan satu slider perbandingan berpasangan antara
+    dua kriteria (`first` vs `second`), dan mengembalikan
+    nilai skala Saaty hasil pilihan pengguna.
+
+    Args:
+        label  : key unik untuk widget Streamlit (mis. hasil
+                 gabungan "Biaya vs Performa").
+        first  : nama kriteria di sisi kiri slider.
+        second : nama kriteria di sisi kanan slider.
+
+    Returns:
+        float : nilai skala Saaty (1-9, atau reciprocal-nya).
+    """
 
     st.markdown(f"**{label}**")
 
@@ -51,7 +107,7 @@ def pairwise_slider(label, first, second):
         """,
         unsafe_allow_html=True
     )
-    
+
     position = st.slider(
         "",
         min_value=-8,
@@ -61,54 +117,28 @@ def pairwise_slider(label, first, second):
         label_visibility="collapsed",
         key=label
     )
-    
-    display = {
-    -8: f"{first} mutlak lebih penting",
-    -7: f"{first} berada di antara sangat dan mutlak lebih penting",
-    -6: f"{first} sangat lebih penting",
-    -5: f"{first} berada di antara lebih penting dan sangat lebih penting",
-    -4: f"{first} lebih penting",
-    -3: f"{first} berada di antara sedikit dan lebih penting",
-    -2: f"{first} sedikit lebih penting",
-    -1: f"{first} berada di antara sama dan sedikit lebih penting",
 
-    0: "Kedua kriteria sama penting",
+    if position == 0:
+        st.caption("Kedua kriteria sama penting")
+    elif position < 0:
+        st.caption(f"{first} {_POSITION_TO_LABEL[position]}")
+    else:
+        st.caption(f"{second} {_POSITION_TO_LABEL[position]}")
 
-    1: f"{second} berada di antara sama dan sedikit lebih penting",
-    2: f"{second} sedikit lebih penting",
-    3: f"{second} berada di antara sedikit dan lebih penting",
-    4: f"{second} lebih penting",
-    5: f"{second} berada di antara lebih penting dan sangat lebih penting",
-    6: f"{second} sangat lebih penting",
-    7: f"{second} berada di antara sangat dan mutlak lebih penting",
-    8: f"{second} mutlak lebih penting"
-    }
+    return _POSITION_TO_SAATY[position]
 
-    st.caption(display[position])
-
-    mapping = {
-        -8: 9,
-        -7: 8,
-        -6: 7,
-        -5: 6,
-        -4: 5,
-        -3: 4,
-        -2: 3,
-        -1: 2,
-         0: 1,
-         1: 1/2,
-         2: 1/3,
-         3: 1/4,
-         4: 1/5,
-         5: 1/6,
-         6: 1/7,
-         7: 1/8,
-         8: 1/9
-    }
-
-    return mapping[position]
 
 def show_input():
+    """
+    Menampilkan seluruh slider preferensi kriteria (dibuat
+    otomatis dari config.CRITERIA) dan membentuk matriks
+    perbandingan berpasangan dari hasil input pengguna.
+
+    Returns:
+        tuple (matrix_user, criteria)
+            matrix_user : numpy.ndarray (n x n)
+            criteria    : list[str], selalu config.CRITERIA
+    """
 
     st.header("Input Preferensi Kriteria")
 
@@ -144,80 +174,36 @@ def show_input():
         2 | Nilai kompromi
 
         1 | Sama penting
-        
+
         Nilai di sisi kanan slider merupakan reciprocal dari nilai di sisi kiri.
         """)
 
     # ==========================================================
-    # Input Pairwise Comparison
+    # Bangkitkan slider secara dinamis dari config.CRITERIA.
+    # Jumlah pasangan akan selalu C(n, 2), dibagi rata ke
+    # 2 kolom agar tampilan tetap rapi berapa pun jumlah
+    # kriterianya.
     # ==========================================================
+
+    pair_labels = get_pairwise_labels(CRITERIA)
+
+    half = (len(pair_labels) + 1) // 2
+
     col1, col2 = st.columns(2)
 
+    comparisons = [None] * len(pair_labels)
+
     with col1:
-
-        b_p = pairwise_slider(
-            "Biaya vs Performa",
-            "Biaya",
-            "Performa"
-        )
-
-        b_s = pairwise_slider(
-            "Biaya vs Skalabilitas",
-            "Biaya",
-            "Skalabilitas"
-        )
-
-        b_k = pairwise_slider(
-            "Biaya vs Keamanan",
-            "Biaya",
-            "Keamanan"
-        )
-
-        b_r = pairwise_slider(
-            "Biaya vs Reliability",
-            "Biaya",
-            "Reliability"
-        )
-
-        p_s = pairwise_slider(
-            "Performa vs Skalabilitas",
-            "Performa",
-            "Skalabilitas"
-        )
-
+        for idx in range(0, half):
+            first, second = pair_labels[idx]
+            label = f"{first} vs {second}"
+            comparisons[idx] = pairwise_slider(label, first, second)
 
     with col2:
-
-        p_k = pairwise_slider(
-            "Performa vs Keamanan",
-            "Performa",
-            "Keamanan"
-        )
-
-        p_r = pairwise_slider(
-            "Performa vs Reliability",
-            "Performa",
-            "Reliability"
-        )
-
-        s_k = pairwise_slider(
-            "Skalabilitas vs Keamanan",
-            "Skalabilitas",
-            "Keamanan"
-        )
-
-        s_r = pairwise_slider(
-            "Skalabilitas vs Reliability",
-            "Skalabilitas",
-            "Reliability"
-        )
-
-        k_r = pairwise_slider(
-            "Keamanan vs Reliability",
-            "Keamanan",
-            "Reliability"
-        )
-
+        for idx in range(half, len(pair_labels)):
+            first, second = pair_labels[idx]
+            label = f"{first} vs {second}"
+            comparisons[idx] = pairwise_slider(label, first, second)
 
     st.warning(
     """
@@ -236,25 +222,11 @@ def show_input():
     Maka Biaya sebaiknya juga lebih penting daripada Keamanan.
 
     Semakin konsisten penilaian yang diberikan, semakin kecil nilai Consistency Ratio (CR) yang dihasilkan.
-    
+
     Apabila nilai CR melebihi 0,10 maka sistem akan melakukan Auto Consistency sebelum menghitung bobot Fuzzy AHP.
     """
     )
-    
-    criteria = [
-                "Biaya",
-                "Performa",
-                "Skalabilitas",
-                "Keamanan",
-                "Reliability"
-            ]
-    
-    matrix_user = np.array([
-        [1,      b_p,      b_s,      b_k,      b_r],
-        [1/b_p,  1,        p_s,      p_k,      p_r],
-        [1/b_s,  1/p_s,    1,        s_k,      s_r],
-        [1/b_k,  1/p_k,    1/s_k,    1,        k_r],
-        [1/b_r,  1/p_r,    1/s_r,    1/k_r,    1]
-    ])
 
-    return matrix_user, criteria
+    matrix_user = build_pairwise_matrix(comparisons, CRITERIA)
+
+    return matrix_user, CRITERIA

@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 
+from config import CR_THRESHOLD
 from modules.consistency import consistency_test
 from modules.inconsistency_analyzer import find_inconsistent_pairs
 from modules.auto_consistency import auto_fix_matrix
@@ -66,13 +67,13 @@ def show_consistency(
         )
 
         st.info(
-            """
+            f"""
         Interpretasi Consistency Ratio (CR)
 
-        ✓ CR < 0.10
+        ✓ CR < {CR_THRESHOLD:.2f}
         Matriks dinyatakan konsisten.
 
-        ✗ CR ≥ 0.10
+        ✗ CR ≥ {CR_THRESHOLD:.2f}
         Matriks perlu diperbaiki.
         """
         )
