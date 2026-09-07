@@ -2,7 +2,14 @@
 """
 Halaman input preferensi pengguna (Tahap 1).
 
-seluruh pasangan dibuat otomatis dari config.CRITERIA
+Sebelumnya setiap pasangan kriteria (Biaya vs Performa, Biaya
+vs Skalabilitas, dst) ditulis manual satu per satu sebagai
+pemanggilan fungsi terpisah. Total ada 10 pemanggilan untuk
+5 kriteria - kalau kriteria bertambah jadi 6, seharusnya ada
+15 pasangan, dan menulis semuanya manual sangat rawan salah
+urut atau ada yang lupa ditambahkan.
+
+Sekarang seluruh pasangan dibuat otomatis dari config.CRITERIA
 lewat matrix_helper.get_pairwise_labels(), sehingga jumlah
 kriteria berapa pun akan otomatis menghasilkan slider yang
 sesuai, tanpa mengubah kode di file ini.
@@ -128,11 +135,21 @@ def pairwise_slider(label, first, second):
     return _POSITION_TO_SAATY[position]
 
 
-def show_input():
+def show_input(mode="teknis"):
     """
     Menampilkan seluruh slider preferensi kriteria (dibuat
     otomatis dari config.CRITERIA) dan membentuk matriks
     perbandingan berpasangan dari hasil input pengguna.
+
+    Args:
+        mode : "teknis" (default) menampilkan istilah AHP
+               (nilai AHP, Consistency Ratio/CR, Auto
+               Consistency, Fuzzy AHP) - dipakai di app.py
+               untuk keperluan sidang/demo.
+
+               "awam" menampilkan bahasa yang sama sekali
+               tidak menyebut istilah teknis di atas - dipakai
+               di app_user.py untuk pengguna akhir.
 
     Returns:
         tuple (matrix_user, criteria)
@@ -152,31 +169,33 @@ def show_input():
     • Posisi tengah menunjukkan kedua kriteria memiliki tingkat kepentingan yang sama.
     """)
 
-    with st.expander("Lihat Konversi Pilihan ke Nilai AHP"):
+    if mode == "teknis":
 
-        st.markdown("""
-        Nilai AHP | Makna
+        with st.expander("Lihat Konversi Pilihan ke Nilai AHP"):
 
-        9 | Mutlak lebih penting
+            st.markdown("""
+            Nilai AHP | Makna
 
-        8 | Nilai kompromi
+            9 | Mutlak lebih penting
 
-        7 | Sangat lebih penting
+            8 | Nilai kompromi
 
-        6 | Nilai kompromi
+            7 | Sangat lebih penting
 
-        5 | Lebih penting
+            6 | Nilai kompromi
 
-        4 | Nilai kompromi
+            5 | Lebih penting
 
-        3 | Sedikit lebih penting
+            4 | Nilai kompromi
 
-        2 | Nilai kompromi
+            3 | Sedikit lebih penting
 
-        1 | Sama penting
+            2 | Nilai kompromi
 
-        Nilai di sisi kanan slider merupakan reciprocal dari nilai di sisi kiri.
-        """)
+            1 | Sama penting
+
+            Nilai di sisi kanan slider merupakan reciprocal dari nilai di sisi kiri.
+            """)
 
     # ==========================================================
     # Bangkitkan slider secara dinamis dari config.CRITERIA.
@@ -205,23 +224,50 @@ def show_input():
             label = f"{first} vs {second}"
             comparisons[idx] = pairwise_slider(label, first, second)
 
-    st.warning(
-    """
-    ### Tips agar hasil lebih konsisten
+    if mode == "teknis":
 
-    • Berikan penilaian secara logis dan konsisten.
+        st.warning(
+        """
+        ### Tips agar hasil lebih konsisten (CR ≤ 0.10)
 
-    • Hindari penilaian yang saling bertentangan.
+        • Berikan penilaian secara logis dan konsisten.
 
-    Contoh:
+        • Hindari penilaian yang saling bertentangan.
 
-    Biaya lebih penting daripada Performa.
+        Contoh:
 
-    Performa lebih penting daripada Keamanan.
+        Biaya lebih penting daripada Performa.
 
-    Maka Biaya sebaiknya juga lebih penting daripada Keamanan.
-    """
-    )
+        Performa lebih penting daripada Keamanan.
+
+        Maka Biaya sebaiknya juga lebih penting daripada Keamanan.
+
+        Semakin konsisten penilaian yang diberikan, semakin kecil nilai Consistency Ratio (CR) yang dihasilkan.
+
+        Apabila nilai CR melebihi 0,10 maka sistem akan melakukan Auto Consistency sebelum menghitung bobot Fuzzy AHP.
+        """
+        )
+
+    else:
+
+        st.warning(
+        """
+        ### 💡 Tips agar rekomendasi lebih akurat
+
+        • Berikan penilaian secara logis dan tidak saling bertentangan.
+
+        Contoh:
+
+        Kalau Biaya lebih penting daripada Performa,
+
+        dan Performa lebih penting daripada Keamanan,
+
+        maka sebaiknya Biaya juga lebih penting daripada Keamanan.
+
+        Semakin logis dan konsisten penilaian yang kamu berikan,
+        semakin akurat rekomendasi yang dihasilkan sistem untukmu.
+        """
+        )
 
     matrix_user = build_pairwise_matrix(comparisons, CRITERIA)
 

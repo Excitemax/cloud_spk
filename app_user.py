@@ -25,6 +25,9 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
+# CATATAN: folder "pages" di-rename jadi "steps" agar tidak
+# terdeteksi otomatis sebagai halaman terpisah oleh Streamlit
+# (lihat penjelasan di app.py).
 from steps.input_page import show_input
 
 from modules.consistency import consistency_test
@@ -138,7 +141,7 @@ def build_reasoning(criteria, weights, cloud_df, ranking):
 # Tahap Input
 # ==========================================================
 
-matrix_user, criteria = show_input()
+matrix_user, criteria = show_input(mode="awam")
 
 hitung = st.button(
     "🚀 Hitung Rekomendasi",
