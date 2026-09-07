@@ -1,6 +1,6 @@
 # modules/fuzzy_ahp.py
 """
-Perhitungan bobot kriteria menggunakan Fuzzy AHP
+Perhitungan bobot kriteria Fuzzy AHP
 (metode Chang Extent Analysis).
 
 Alur singkat:

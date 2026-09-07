@@ -3,7 +3,7 @@
 # Hybrid Fuzzy AHP - TOPSIS
 # ==========================================================
 #app.py
-
+# Import Library
 import streamlit as st
 
 # Import Halaman Aplikasi
@@ -26,9 +26,46 @@ st.set_page_config(
     layout="wide"
 )
 
+# ==========================================================
+# CSS Ringkas
+#
+# Streamlit secara default memberi padding/margin cukup besar
+# di atas judul dan di sekitar heading/divider, sehingga
+# tampilan awal terasa "lapang" dan tidak muat dalam satu
+# screenshot. Blok CSS ini memperkecil jarak-jarak tersebut
+# tanpa mengubah konten/logika aplikasi sama sekali.
+# ==========================================================
+
+st.markdown(
+    """
+    <style>
+        .block-container {
+            padding-top: 1.5rem;
+            padding-bottom: 1rem;
+        }
+        h1 {
+            margin-bottom: 0rem;
+            padding-bottom: 0rem;
+        }
+        h3 {
+            margin-top: 0rem;
+            padding-top: 0rem;
+        }
+        hr {
+            margin: 0.6rem 0;
+        }
+        div[data-testid="stMarkdownContainer"] p {
+            margin-bottom: 0.3rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Header Aplikasi
 
 st.title("☁️ Cloud Service Recommendation System")
+
 st.subheader("Hybrid Fuzzy AHP - TOPSIS")
 
 st.markdown("""
@@ -72,7 +109,11 @@ matrix_user, criteria = show_input()
 # menekan tombol "Hitung Rekomendasi".
 #
 # CATATAN PERBAIKAN:
-# pada versi ini, seluruh tahap perhitungan telah disejajarkan
+# Pada versi sebelumnya, blok "with st.spinner(...)" hanya
+# membungkus Tahap 1 (show_pairwise), sehingga indikator
+# loading hilang lebih cepat daripada proses perhitungan
+# yang sebenarnya (Tahap 2-7 berjalan tanpa spinner). Pada
+# versi ini, seluruh tahap perhitungan telah disejajarkan
 # agar berada di dalam satu blok spinner yang sama.
 # ==========================================================
 

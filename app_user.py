@@ -4,6 +4,9 @@
 # VERSI PENGGUNA (langsung ke hasil akhir)
 # ==========================================================
 # app_user.py
+#
+# Beda dengan app.py (versi sidang/demo teknis yang
+# menampilkan setiap tahap perhitungan), file ini adalah
 # versi yang ditujukan untuk pengguna akhir/awam:
 #
 #   1. Pengguna mengisi slider preferensi antar kriteria.
@@ -12,6 +15,8 @@
 #      platform cloud yang direkomendasikan, beserta
 #      alasan dalam bahasa yang mudah dipahami.
 #
+# Tidak ada istilah teknis (matriks, TFN, eigenvector,
+# Consistency Ratio, dsb.) yang ditampilkan ke pengguna.
 # Seluruh perbaikan konsistensi tetap dilakukan otomatis
 # di balik layar.
 # ==========================================================
@@ -28,6 +33,7 @@ from modules.fuzzy_ahp import calculate_fuzzy_ahp
 from modules.cloud_data import get_cloud_data
 from modules.topsis import calculate_topsis
 
+
 # ==========================================================
 # Konfigurasi Halaman
 # ==========================================================
@@ -36,6 +42,32 @@ st.set_page_config(
     page_title="Rekomendasi Cloud Terbaik",
     page_icon="☁️",
     layout="centered"
+)
+
+# ==========================================================
+# CSS Ringkas - lihat penjelasan di app.py.
+# ==========================================================
+
+st.markdown(
+    """
+    <style>
+        .block-container {
+            padding-top: 1.5rem;
+            padding-bottom: 1rem;
+        }
+        h1 {
+            margin-bottom: 0rem;
+            padding-bottom: 0rem;
+        }
+        hr {
+            margin: 0.6rem 0;
+        }
+        div[data-testid="stMarkdownContainer"] p {
+            margin-bottom: 0.3rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 st.title("☁️ Cari Platform Cloud Terbaik untuk Anda")
@@ -50,6 +82,7 @@ platform *cloud computing* yang paling sesuai.
 )
 
 st.divider()
+
 
 # ==========================================================
 # Fungsi bantu: menyusun alasan rekomendasi dalam
@@ -99,6 +132,7 @@ def build_reasoning(criteria, weights, cloud_df, ranking):
         )
 
     return best_platform, best_score, top_criteria, alasan
+
 
 # ==========================================================
 # Tahap Input
