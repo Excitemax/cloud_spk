@@ -207,7 +207,7 @@ def show_input():
 
     st.warning(
     """
-    ### Tips agar hasil lebih konsisten (CR ≤ 0.10)
+    ### Tips agar hasil lebih konsisten
 
     • Berikan penilaian secara logis dan konsisten.
 
@@ -220,10 +220,6 @@ def show_input():
     Performa lebih penting daripada Keamanan.
 
     Maka Biaya sebaiknya juga lebih penting daripada Keamanan.
-
-    Semakin konsisten penilaian yang diberikan, semakin kecil nilai Consistency Ratio (CR) yang dihasilkan.
-
-    Apabila nilai CR melebihi 0,10 maka sistem akan melakukan Auto Consistency sebelum menghitung bobot Fuzzy AHP.
     """
     )
 
