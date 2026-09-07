@@ -7,14 +7,14 @@
 import streamlit as st
 
 # Import Halaman Aplikasi
-from pages.input_page import show_input
-from pages.pairwise_page import show_pairwise
-from pages.consistency_page import show_consistency
-from pages.final_matrix_page import show_final_matrix
-from pages.fuzzy_ahp_page import show_fuzzy_ahp
-from pages.cloud_data_page import show_cloud_data
-from pages.topsis_page import show_topsis
-from pages.ranking_page import show_ranking
+from steps.input_page import show_input
+from steps.pairwise_page import show_pairwise
+from steps.consistency_page import show_consistency
+from steps.final_matrix_page import show_final_matrix
+from steps.fuzzy_ahp_page import show_fuzzy_ahp
+from steps.cloud_data_page import show_cloud_data
+from steps.topsis_page import show_topsis
+from steps.ranking_page import show_ranking
 
 # ==========================================================
 # Konfigurasi Halaman Streamlit

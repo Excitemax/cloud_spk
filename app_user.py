@@ -25,7 +25,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
-from pages.input_page import show_input
+from steps.input_page import show_input
 
 from modules.consistency import consistency_test
 from modules.auto_consistency import auto_fix_matrix
